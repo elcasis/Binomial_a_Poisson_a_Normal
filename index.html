@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Desafío Binomial -> Poisson -> Normal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Space Grotesk','sans-serif'],mono:['JetBrains Mono','monospace']}}}}</script>
+    <style>
+        :root{--bg:#0c0816;--card:#14101e;--card2:#1c1628;--border:#2e2448;--accent:#8b5cf6;--accent2:#a78bfa;--success:#34d399;--error:#f87171;--warn:#f59e0b;--pink:#ec4899;--muted:#8a7aaa;--fg:#ece8f4;--formula-bg:#100c18;--formula-border:#221a3a;--slot-empty:#16111f;--slot-border:#3a2e55;--chip-bg:#1a1428;--chip-border:#342a50}
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--fg);min-height:100vh;overflow-x:hidden}
+        .screen{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
+        .hidden{display:none!important}
+        .bg-blob{position:fixed;border-radius:50%;filter:blur(120px);opacity:.1;pointer-events:none;z-index:0}
+        .b1{width:500px;height:500px;background:#8b5cf6;top:-150px;left:-100px;animation:bf1 25s ease-in-out infinite}
+        .b2{width:400px;height:400px;background:#34d399;bottom:-100px;right:-80px;animation:bf2 20s ease-in-out infinite}
+        @keyframes bf1{0%,100%{transform:translate(0,0)}50%{transform:translate(80px,60px)}}
+        @keyframes bf2{0%,100%{transform:translate(0,0)}50%{transform:translate(-60px,-80px)}}
+        .wtitle{font-size:clamp(2.2rem,7vw,3.8rem);font-weight:700;letter-spacing:-.03em;line-height:1.1;background:linear-gradient(135deg,#8b5cf6,#a78bfa 50%,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .formula-hero{font-family:'JetBrains Mono',monospace;font-size:clamp(.65rem,2vw,.9rem);color:var(--muted);padding:.75rem 1.5rem;background:var(--formula-bg);border:1px solid var(--formula-border);border-radius:12px}
+        .top-bar{position:sticky;top:0;z-index:50;background:rgba(12,8,22,.88);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:.6rem 1.2rem;width:100%}
+        .pseg{height:5px;flex:1;border-radius:3px;background:var(--border);transition:background .4s,box-shadow .4s;margin:0 2px}
+        .pseg.sg{background:var(--success);box-shadow:0 0 6px rgba(52,211,153,.4)}.pseg.sa{background:var(--accent);box-shadow:0 0 6px rgba(139,92,246,.4)}.pseg.se{background:var(--error);box-shadow:0 0 6px rgba(248,113,113,.3)}.pseg.sc{background:var(--accent);animation:sp 1.5s ease-in-out infinite}
+        @keyframes sp{0%,100%{opacity:1}50%{opacity:.4}}
+        .pcard{background:var(--card);border:1px solid var(--border);border-radius:16px;max-width:740px;width:100%;padding:1.75rem;animation:cin .45s ease-out}
+        @keyframes cin{0%{opacity:0;transform:translateY(25px)}100%{opacity:1;transform:translateY(0)}}
+        .formula-board{font-family:'JetBrains Mono',monospace;background:var(--formula-bg);border:1px solid var(--formula-border);border-radius:10px;padding:1rem;text-align:center;box-shadow:inset 0 2px 8px rgba(0,0,0,.3);display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:1px;line-height:2.4}
+        .ftxt{color:#c4b5fd;font-size:1.05rem} .ftxt sup{font-size:.7em;vertical-align:super}
+        .fslot{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:32px;padding:0 8px;background:var(--slot-empty);border:1.5px dashed var(--slot-border);border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:.95rem;color:var(--muted);cursor:pointer;transition:all .2s;vertical-align:middle;margin:0 2px}
+        .fslot:hover{border-color:var(--accent);background:rgba(139,92,246,.06)}
+        .fslot.filled{border-style:solid;border-color:var(--accent);background:rgba(139,92,246,.12);color:var(--accent2);font-weight:600;cursor:pointer}
+        .fslot.filled:hover{border-color:var(--error);background:rgba(248,113,113,.08)}
+        .fslot.wf{animation:wfl .4s ease} @keyframes wfl{0%,100%{border-color:var(--slot-border)}30%{border-color:var(--error);background:rgba(248,113,113,.15)}}
+        .fslot.hg{border-color:var(--accent2)!important;box-shadow:0 0 10px rgba(167,139,250,.25);animation:hgl 1.5s ease-in-out infinite} @keyframes hgl{0%,100%{box-shadow:0 0 8px rgba(167,139,250,.2)}50%{box-shadow:0 0 16px rgba(167,139,250,.4)}}
+        .fslot.done{border-color:var(--success);background:rgba(52,211,153,.1);color:var(--success);cursor:default;border-style:solid} .fslot.done:hover{border-color:var(--success);background:rgba(52,211,153,.1)}
+        .chip{display:inline-flex;align-items:center;justify-content:center;padding:.4rem .9rem;background:var(--chip-bg);border:1.5px solid var(--chip-border);border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:600;color:var(--fg);cursor:pointer;transition:all .2s;user-select:none}
+        .chip:hover:not(.used){border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+        .chip.sel{border-color:var(--accent2);background:rgba(139,92,246,.12);color:var(--accent2);box-shadow:0 0 16px rgba(139,92,246,.2);transform:translateY(-3px)}
+        .chip.used{opacity:.25;cursor:default;transform:none;box-shadow:none;border-color:var(--chip-bg)}
+        .phase-badge{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:.3rem .75rem;border-radius:6px;margin-bottom:.75rem}
+        .pb1{color:var(--accent);background:rgba(139,92,246,.07);border:1px solid rgba(139,92,246,.13)}
+        .pb2{color:#a78bfa;background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.13)}
+        .pb3{color:var(--pink);background:rgba(236,72,153,.07);border:1px solid rgba(236,72,153,.13)}
+        .pb4{color:#f472b6;background:rgba(244,114,182,.07);border:1px solid rgba(244,114,182,.13)}
+        .pb5{color:var(--warn);background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.13)}
+        .pb6{color:#fbbf24;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.13)}
+        .pb7{color:var(--success);background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.13)}
+        .bridge-div{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:1.25rem 0}
+        .bridge-res{font-family:'JetBrains Mono',monospace;text-align:center;padding:.6rem 1rem;border-radius:10px;font-size:.85rem;animation:ein .4s ease}
+        .br-pur{background:rgba(139,92,246,.05);border:1px solid rgba(139,92,246,.18);color:var(--accent2)}
+        .br-pink{background:rgba(236,72,153,.05);border:1px solid rgba(236,72,153,.18);color:var(--pink)}
+        .br-warn{background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.18);color:var(--warn)}
+        .br-ok{background:rgba(52,211,153,.05);border:1px solid rgba(52,211,153,.18);color:var(--success)}
+        .z-table{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:.75rem;margin-top:.5rem;background:var(--card2);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+        .z-table th,.z-table td{padding:.4rem .2rem;text-align:center;border:1px solid var(--border)}
+        .z-table th{background:rgba(139,92,246,.08);color:var(--accent2);font-weight:600}
+        .z-table td{color:var(--muted)} .z-table td.z-hit{background:rgba(52,211,153,.15);color:var(--success);font-weight:700;border:2px solid var(--success)}
+        .dev-step{opacity:0;transform:translateX(-15px);transition:all .4s ease;margin-top:.5rem}
+        .dev-step.show{opacity:1;transform:translateX(0)}
+        .dev-line{font-family:'JetBrains Mono',monospace;font-size:.85rem;padding:.35rem .75rem;border-radius:6px;background:var(--card2)}
+        .dev-final{border:1px solid rgba(52,211,153,.3);background:rgba(52,211,153,.06);color:var(--success);font-size:.95rem;font-weight:700}
+        .dev-rnum{font-size:1.4rem;font-weight:700;color:var(--accent2);display:block;margin-top:.2rem}
+        .btn-p{background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;border:none;border-radius:10px;padding:.65rem 1.8rem;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.95rem;cursor:pointer;transition:transform .15s,box-shadow .2s}
+        .btn-p:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(139,92,246,.3)}.btn-p:active{transform:translateY(0)}
+        .btn-sm{padding:.5rem 1.2rem;font-size:.85rem;border-radius:8px}
+        .btn-icon{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:.4rem .65rem;cursor:pointer;font-size:.82rem;transition:all .2s}
+        .btn-icon:hover:not(.used){border-color:var(--accent);color:var(--accent)}.btn-icon.used{opacity:.3;cursor:default}
+        .particle{position:fixed;width:7px;height:7px;border-radius:50%;pointer-events:none;z-index:100;animation:pb .65s ease-out forwards}
+        @keyframes pb{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+        .toast-c{position:fixed;top:72px;right:14px;z-index:200;display:flex;flex-direction:column;gap:6px}
+        .toast{padding:.55rem .9rem;border-radius:8px;font-size:.82rem;font-weight:500;animation:tin .25s ease;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+        .toast-s{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);color:var(--success)}.toast-e{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.25);color:var(--error)}.toast-i{background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.25);color:var(--accent)}.toast-out{animation:tout .25s ease forwards}
+        @keyframes tin{0%{opacity:0;transform:translateX(30px)}100%{opacity:1;transform:translateX(0)}} @keyframes tout{0%{opacity:1;transform:translateX(0)}100%{opacity:0;transform:translateX(30px)}} @keyframes ein{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:translateY(0)}}
+        .score-big{font-size:clamp(2.5rem,9vw,4.5rem);font-weight:700;line-height:1;background:linear-gradient(135deg,#8b5cf6,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .rank-badge{font-size:1rem;font-weight:700;padding:.4rem 1.2rem;border-radius:50px;display:inline-block}
+        .rg{background:linear-gradient(135deg,#8b5cf6,#a78bfa);color:#fff}.rs{background:linear-gradient(135deg,#94a3b8,#cbd5e1);color:#000}.rb{background:linear-gradient(135deg,#6d28d9,#4c1d95);color:#fff}.rk{background:var(--card2);color:var(--muted);border:1px solid var(--border)}
+        .rcard{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.8rem 1rem;transition:transform .2s}.rcard:hover{transform:translateX(3px)}
+        .bar-f{height:100%;border-radius:2px;transition:width 1s ease}
+        @media(max-width:640px){.pcard{padding:1.2rem;margin:0 .3rem}.formula-board{font-size:.82rem;padding:.7rem .5rem;line-height:2.2}.fslot{min-width:36px;height:28px;font-size:.8rem;padding:0 5px}.chip{padding:.35rem .65rem;font-size:.88rem}.z-table{font-size:.65rem}}
+        @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+    </style>
+</head>
+<body>
+<div class="bg-blob b1"></div><div class="bg-blob b2"></div><div class="toast-c" id="toastC"></div><div id="partC"></div>
+
+<div class="screen" id="scrW">
+    <div class="text-center px-4 max-w-2xl">
+        <div class="mb-2 text-sm font-mono tracking-widest uppercase" style="color:var(--muted)">Transici&oacute;n de Distribuciones</div>
+        <h1 class="wtitle mb-3">Binomial &rarr; Poisson &rarr; Normal</h1>
+        <div class="formula-hero mb-4">7 Fases: Puntual (Binomial/Poisson) + Acumulada con Ajuste +0.5 (Normal)</div>
+        <p class="mb-6 mx-auto" style="color:var(--muted);max-width:480px;font-size:.93rem">Resuelve la probabilidad puntual y la acumulada en un solo flujo.</p>
+        <button class="btn-p" onclick="startGame()"><i class="fas fa-play mr-2"></i>Comenzar</button>
+    </div>
+</div>
+
+<div class="screen hidden" id="scrG" style="justify-content:flex-start">
+    <div class="top-bar">
+        <div class="flex items-center justify-between mb-2">
+            <span class="font-mono text-sm" style="color:var(--muted)" id="pCtr">1 / 10</span>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-1.5" style="color:var(--accent);font-size:.82rem"><i class="fas fa-fire"></i><span class="font-mono font-bold" id="strN">0</span></div>
+                <div class="flex items-center gap-1.5"><i class="fas fa-star" style="color:var(--accent);font-size:.82rem"></i><span class="font-mono font-bold" style="color:var(--accent2)" id="scN">0</span></div>
+            </div>
+        </div>
+        <div class="flex" id="progBar"></div>
+    </div>
+    <div class="flex-1 flex items-start justify-center pt-5 pb-12 px-3"><div id="gCont" class="w-full" style="max-width:740px"></div></div>
+</div>
+
+<div class="screen hidden" id="scrR"><div class="text-center px-4 max-w-xl w-full" id="rCont"></div></div>
+
+<script>
+function normCDF(x){const a1=.254829592,a2=-.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=.3275911;const sign=x<0?-1:1;x=Math.abs(x)/Math.sqrt(2);const t=1/(1+p*x);const y=1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);return .5*(1+sign*y)}
+function fact(n){let r=1;for(let i=2;i<=n;i++)r*=i;return r}
+function fmtN(v){if(Number.isInteger(v))return v.toString();let s=v.toFixed(4).replace(/0+$/,'').replace(/\.$/,'');return s}
+function shuf(a){let b=[...a];for(let i=b.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+
+function generateMiniZTable(targetZ){
+    const absZ=Math.abs(targetZ);const intP=Math.floor(absZ);const decP=Math.round((absZ-intP)*10);const baseZ=intP+decP/10;const startZ=Math.max(0,baseZ-.2);
+    let h=`<table class="z-table"><thead><tr><th>Z</th><th>0.00</th><th>0.01</th><th>0.02</th><th>0.03</th><th>0.04</th><th>0.05</th><th>0.06</th><th>0.07</th><th>0.08</th><th>0.09</th></tr></thead><tbody>`;
+    for(let i=0;i<5;i++){const rZ=startZ+i*.1;if(rZ>3.5)break;const rI=Math.floor(rZ);const rD=Math.round((rZ-rI)*10);h+=`<tr><td style="color:var(--accent2);font-weight:700">${rI}.${rD}</td>`;for(let j=0;j<10;j++){const cZ=rZ+j*.01;const p=normCDF(cZ);const hit=Math.round(cZ*100)===Math.round(absZ*100);h+=`<td class="${hit?'z-hit':''}">${p.toFixed(4)}</td>`}h+=`</tr>`}return h+`</tbody></table>`}
+
+const EX=[
+{stmt:'Una f&aacute;brica produce <strong>100</strong> piezas con <strong>5%</strong> defectuosas. &iquest;Prob de <strong>exactamente 3</strong> defectuosas? &iquest;Y de <strong>3 o menos</strong>?',n:100,p:0.05,x:3},
+{stmt:'Un servidor recibe <strong>200</strong> solicitudes, el <strong>2%</strong> fallan. &iquest;Prob de <strong>exactamente 5</strong> fallos? &iquest;Y de <strong>5 o menos</strong>?',n:200,p:0.02,x:5},
+{stmt:'Un libro tiene <strong>50</strong> p&aacute;ginas con <strong>10%</strong> prob de error. &iquest;Prob de <strong>exactamente 6</strong> errores? &iquest;Y de <strong>6 o menos</strong>?',n:50,p:0.10,x:6},
+{stmt:'En <strong>80</strong> ex&aacute;menes, el <strong>4%</strong> obtuvo matr&iacute;cula. &iquest;Prob de <strong>exactamente 2</strong> matr&iacute;culas? &iquest;Y de <strong>2 o menos</strong>?',n:80,p:0.04,x:2},
+{stmt:'Se realizan <strong>150</strong> pedidos, el <strong>3%</strong> se devuelven. &iquest;Prob de <strong>exactamente 3</strong> devoluciones? &iquest;Y de <strong>3 o menos</strong>?',n:150,p:0.03,x:3},
+{stmt:'En <strong>120</strong> cirug&iacute;as, el <strong>6%</strong> tienen complicaciones. &iquest;Prob de <strong>exactamente 8</strong>? &iquest;Y de <strong>8 o menos</strong>?',n:120,p:0.06,x:8},
+{stmt:'Una planta tiene <strong>250</strong> componentes, el <strong>1%</strong> falla. &iquest;Prob de <strong>exactamente 4</strong> fallos? &iquest;Y de <strong>4 o menos</strong>?',n:250,p:0.01,x:4},
+{stmt:'En <strong>60</strong> d&iacute;as, llueve el <strong>8%</strong> de los d&iacute;as. &iquest;Prob de <strong>exactamente 6</strong> d&iacute;as? &iquest;Y de <strong>6 o menos</strong>?',n:60,p:0.08,x:6},
+{stmt:'Se emiten <strong>300</strong> facturas, el <strong>2%</strong> tienen error. &iquest;Prob de <strong>exactamente 8</strong> con error? &iquest;Y de <strong>8 o menos</strong>?',n:300,p:0.02,x:8},
+{stmt:'En <strong>90</strong> ensayos, el <strong>5%</strong> tiene reacci&oacute;n. &iquest;Prob de <strong>exactamente 6</strong> reacciones? &iquest;Y de <strong>6 o menos</strong>?',n:90,p:0.05,x:6}
+];
+
+let S={idx:0,phase:1,score:0,streak:0,maxStreak:0,results:[],sel:null,placed:{},errs:{},hints:{},hintCt:0,perfect:true,v:{}};
+
+function toast(m,t='i'){const c=document.getElementById('toastC'),e=document.createElement('div');e.className=`toast toast-${t}`;e.innerHTML=m;c.appendChild(e);setTimeout(()=>{e.classList.add('toast-out');setTimeout(()=>e.remove(),250)},2200)}
+function burst(el){if(!el)return;const r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,c=document.getElementById('partC'),cols=['#8b5cf6','#34d399','#a78bfa','#f59e0b','#c4b5fd'];for(let i=0;i<14;i++){const p=document.createElement('div');p.className='particle';const a=(Math.PI*2*i)/14+(Math.random()-.5)*.5,d=35+Math.random()*55;p.style.left=cx+'px';p.style.top=cy+'px';p.style.setProperty('--dx',Math.cos(a)*d+'px');p.style.setProperty('--dy',Math.sin(a)*d+'px');p.style.backgroundColor=cols[i%cols.length];const sz=5+Math.random()*4;p.style.width=sz+'px';p.style.height=sz+'px';c.appendChild(p);setTimeout(()=>p.remove(),700)}}
+function bigBurst(){const c=document.getElementById('partC'),cols=['#8b5cf6','#34d399','#a78bfa','#f59e0b','#fff'];for(let i=0;i<35;i++){const p=document.createElement('div');p.className='particle';const a=Math.random()*Math.PI*2,d=80+Math.random()*120;p.style.left=innerWidth/2+'px';p.style.top=innerHeight/2+'px';p.style.setProperty('--dx',Math.cos(a)*d+'px');p.style.setProperty('--dy',Math.sin(a)*d+'px');p.style.backgroundColor=cols[i%cols.length];const sz=4+Math.random()*6;p.style.width=sz+'px';p.style.height=sz+'px';c.appendChild(p);setTimeout(()=>p.remove(),800)}}
+
+function showScr(id){['scrW','scrG','scrR'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id))}
+function buildProg(){const b=document.getElementById('progBar');b.innerHTML='';EX.forEach((_,i)=>{const d=document.createElement('div');d.className='pseg';d.id=`sg${i}`;b.appendChild(d)})}
+function updProg(){EX.forEach((_,i)=>{const s=document.getElementById(`sg${i}`);s.className='pseg';if(i<S.idx){const r=S.results[i],ratio=r.score/r.max;s.classList.add(ratio>=.8?'sg':ratio>=.5?'sa':'se')}else if(i===S.idx)s.classList.add('sc')})}
+function lockPhase(ph){document.querySelectorAll(`#fb${ph} .fslot`).forEach(s=>{s.classList.remove('filled');s.classList.add('done');s.style.cursor='default'});document.querySelectorAll(`#ch${ph} .chip`).forEach(c=>c.classList.add('used'));document.getElementById(`ca${ph}`).classList.add('hidden');const b=document.getElementById(`hBtn_ph${ph}`);if(b)b.classList.add('used')}
+
+function mkChips(phase, ex, v){
+    let ok=[], dist=[];
+    if(phase===1){ok=[{id:'v_n1',d:String(ex.n)},{id:'v_x1',d:String(ex.x)},{id:'v_nmx1',d:String(ex.n-ex.x)}];dist=[ex.n+ex.x, ex.n+5, Math.round(ex.n*ex.p), ex.x+2]}
+    else if(phase===2){ok=[{id:'v_p2',d:fmtN(ex.p)},{id:'v_q2',d:fmtN(1-ex.p)}];dist=[fmtN(ex.p/2), fmtN(1+ex.p), fmtN(ex.p*2)]}
+    else if(phase===3){ok=[{id:'v_l3',d:fmtN(v.lambda)}];dist=[fmtN(ex.n+ex.p), fmtN(v.lambda+1), fmtN(ex.n/ex.x)]}
+    else if(phase===4){ok=[{id:'v_l4',d:fmtN(v.lambda)},{id:'v_x4',d:String(ex.x)}];dist=[fmtN(v.lambda+0.5), ex.x+1, Math.round(v.lambda*1.5), ex.x-1]}
+    else if(phase===5){ok=[{id:'v_m5',d:fmtN(v.mu)},{id:'v_s5',d:fmtN(v.sigma)}];dist=[fmtN(v.mu+1), fmtN(v.sigma+0.5), fmtN(v.mu-1), fmtN(v.lambda)]}
+    else if(phase===6){ok=[{id:'v_X6',d:String(ex.x)},{id:'v_056',d:'0.5'},{id:'v_m6',d:fmtN(v.mu)},{id:'v_s6',d:fmtN(v.sigma)}];dist=['1.5','1','0.1']}
+    else if(phase===7){ok=[{id:'v_p7',d:v.probZ.toFixed(4)}];dist=[(1-v.probZ).toFixed(4), (v.probZ+0.1).toFixed(4), (v.probZ-0.05).toFixed(4)]}
+
+    let okStrs=ok.map(o=>o.d);
+    let uniqueDist=[...new Set(dist.map(String))].filter(d=>!okStrs.includes(d)).slice(0,3);
+    while(uniqueDist.length<3)uniqueDist.push(String(Math.floor(Math.random()*15)+1));
+    return shuf([...ok, ...uniqueDist.map((d,i)=>({id:`d${phase}_${i}`,d}))]);
+}
+
+function loadEx(idx){
+    const ex=EX[idx];
+    S.idx=idx;S.phase=1;S.sel=null;S.placed={};S.errs={};S.hints={};S.hintCt=0;S.perfect=true;
+    const lambda=ex.n*ex.p; const mu=lambda; const sigma=Math.sqrt(ex.n*ex.p*(1-ex.p));
+    const Z=(ex.x + 0.5 - mu)/sigma; const probZ=normCDF(Z);
+    S.v={lambda, mu, sigma, Z, probZ};
+
+    document.getElementById('pCtr').textContent=`${idx+1} / ${EX.length}`;
+    document.getElementById('scN').textContent=S.score;
+    document.getElementById('strN').textContent=S.streak;
+    updProg();
+
+    const phHTML=(id, badge, badgeClass, formulaId, chipsId, btnTxt, btnAction)=>`
+        <div id="${id}" class="hidden">
+            <div class="phase-badge ${badgeClass}">${badge}</div>
+            <div class="formula-board mb-4" id="${formulaId}"></div>
+            <div class="flex flex-wrap gap-2 mb-3" id="${chipsId}"></div>
+            <div class="flex gap-2 mb-3"><button class="btn-icon" id="hBtn_${id}" onclick="useHint()"><i class="fas fa-lightbulb"></i></button></div>
+            <div id="ca${id.replace('ph','')}" class="hidden"><button class="btn-p btn-sm w-full" onclick="${btnAction}"><i class="fas fa-check mr-1.5"></i>${btnTxt}</button></div>
+        </div>`;
+
+    document.getElementById('gCont').innerHTML=`
+    <div class="pcard">
+        <p class="text-base mb-5 leading-relaxed" style="font-weight:500">${ex.stmt}</p>
+        
+        <div id="ph1">
+            <div class="phase-badge pb1"><i class="fas fa-dice mr-1.5"></i>Fase 1: Coeficiente Binomial</div>
+            <div class="formula-board mb-4" id="fb1">
+                <span class="ftxt"> [ </span><span class="fslot" data-type="v_n1" onclick="onSlot(this)">?</span><span class="ftxt"> ! ] / ( </span><span class="fslot" data-type="v_x1" onclick="onSlot(this)">?</span><span class="ftxt"> ! * </span><span class="fslot" data-type="v_nmx1" onclick="onSlot(this)">?</span><span class="ftxt"> ! ) </span>
+            </div>
+            <div class="flex flex-wrap gap-2 mb-3" id="ch1"></div>
+            <div class="flex gap-2 mb-3"><button class="btn-icon" id="hBtn_ph1" onclick="useHint()"><i class="fas fa-lightbulb"></i></button></div>
+            <div id="ca1" class="hidden"><button class="btn-p btn-sm w-full" onclick="calcP1()"><i class="fas fa-check mr-1.5"></i>Confirmar Coeficiente</button></div>
+        </div>
+        <div id="br1" class="hidden"></div>
+
+        ${phHTML('ph2','<i class="fas fa-dice mr-1.5"></i>Fase 2: Prob. Puntual Binomial','pb2','fb2','ch2','Confirmar Puntual','calcP2()')}
+        <div id="br2" class="hidden"></div>
+
+        ${phHTML('ph3','<i class="fas fa-exchange-alt mr-1.5"></i>Fase 3: Transición a Poisson','pb3','fb3','ch3','Confirmar Lambda','calcP3()')}
+        <div id="br3" class="hidden"></div>
+
+        ${phHTML('ph4','<i class="fas fa-chart-bar mr-1.5"></i>Fase 4: Prob. Puntual Poisson','pb4','fb4','ch4','Confirmar Puntual','calcP4()')}
+        <div id="br4" class="hidden"></div>
+
+        ${phHTML('ph5','<i class="fas fa-exchange-alt mr-1.5"></i>Fase 5: Transición a Normal','pb5','fb5','ch5','Confirmar Parámetros','calcP5()')}
+        <div id="br5" class="hidden"></div>
+
+        ${phHTML('ph6','<i class="fas fa-calculator mr-1.5"></i>Fase 6: Tipificación Normal (P(X<=x) +0.5 Ajuste)','pb6','fb6','ch6','Calcular Z','calcP6()')}
+        <div id="br6" class="hidden"></div>
+
+        <div id="ph7" class="hidden">
+            <div class="phase-badge pb7"><i class="fas fa-table mr-1.5"></i>Fase 7: Prob. Acumulada Normal</div>
+            <div class="text-xs mb-2 font-mono" style="color:var(--muted)">Busca P(Z &le; z) en la tabla:</div>
+            <div class="mb-4 p-3 rounded-lg" style="background:var(--card2);border:1px solid var(--border)"><div id="zTableCont"></div></div>
+            <div class="formula-board mb-4" id="fb7">
+                <span class="ftxt">P(X &le; ${ex.x}) &asymp; &Phi;(Z) = </span><span class="fslot" data-type="v_p7" onclick="onSlot(this)">?</span>
+            </div>
+            <div class="flex flex-wrap gap-2 mb-3" id="ch7"></div>
+            <div class="flex gap-2 mb-3"><button class="btn-icon" id="hBtn_ph7" onclick="useHint()"><i class="fas fa-lightbulb"></i></button></div>
+            <div id="ca7" class="hidden"><button class="btn-p btn-sm w-full" onclick="calcP7()"><i class="fas fa-flag-checkered mr-1.5"></i>Resultado Final</button></div>
+        </div>
+
+        <div id="devA"></div><div id="nxtA"></div>
+    </div>`;
+    
+    document.getElementById('fb2').innerHTML=`<span class="ftxt">P(X=${ex.x}) = C * </span><span class="fslot" data-type="v_p2" onclick="onSlot(this)">?</span><span class="ftxt"><sup>${ex.x}</sup> * </span><span class="fslot" data-type="v_q2" onclick="onSlot(this)">?</span><span class="ftxt"><sup>${ex.n-ex.x}</sup></span>`;
+    document.getElementById('fb3').innerHTML=`<span class="ftxt">&lambda; = n * p = </span><span class="fslot" data-type="v_l3" onclick="onSlot(this)">?</span>`;
+    document.getElementById('fb4').innerHTML=`<span class="ftxt">P(X=${ex.x}) = e<sup>-&lambda;</sup> * </span><span class="fslot" data-type="v_l4" onclick="onSlot(this)">?</span><span class="ftxt"><sup>${ex.x}</sup> / </span><span class="fslot" data-type="v_x4" onclick="onSlot(this)">?</span><span class="ftxt">!</span>`;
+    document.getElementById('fb5').innerHTML=`<span class="ftxt">&mu; = n * p = </span><span class="fslot" data-type="v_m5" onclick="onSlot(this)">?</span><span class="ftxt" style="margin-left:10px">&sigma; = &radic;(n*p*q) = </span><span class="fslot" data-type="v_s5" onclick="onSlot(this)">?</span>`;
+    document.getElementById('fb6').innerHTML=`<span class="ftxt">Z = ( </span><span class="fslot" data-type="v_X6" onclick="onSlot(this)">?</span><span class="ftxt"> + </span><span class="fslot" data-type="v_056" onclick="onSlot(this)">?</span><span class="ftxt"> - </span><span class="fslot" data-type="v_m6" onclick="onSlot(this)">?</span><span class="ftxt"> ) / </span><span class="fslot" data-type="v_s6" onclick="onSlot(this)">?</span>`;
+
+    loadChipsForPhase(1, ex);
+}
+
+function loadChipsForPhase(ph, ex) {
+    const c = mkChips(ph, ex, S.v);
+    document.getElementById(`ch${ph}`).innerHTML = c.map(c=>`<div class="chip" data-cid="${c.id}" data-ph="${ph}" onclick="onChip('${c.id}',${ph})">${c.d}</div>`).join('');
+}
+
+function onChip(cid,ph){if(S.phase!==ph)return;const el=document.querySelector(`#ch${ph} .chip[data-cid="${cid}"]`);if(!el||el.classList.contains('used'))return;document.querySelectorAll(`#ch${ph} .chip.sel`).forEach(c=>c.classList.remove('sel'));if(S.sel===cid){S.sel=null;return}S.sel=cid;el.classList.add('sel')}
+
+function onSlot(el){
+    const type=el.dataset.type;const ph=S.phase;if(el.classList.contains('filled')){rmType(type,ph);return}if(!S.sel){toast('Selecciona una ficha primero','i');return}
+    const validIds=['v_n1','v_x1','v_nmx1','v_p2','v_q2','v_l3','v_l4','v_x4','v_m5','v_s5','v_X6','v_056','v_m6','v_s6','v_p7'];
+    if(S.sel===type && validIds.includes(type)) plType(type,ph);
+    else{S.errs[type]=(S.errs[type]||0)+1;S.perfect=false;el.classList.add('wf');setTimeout(()=>el.classList.remove('wf'),420);toast('Ese valor no va aqu&iacute;','e')}
+}
+
+function plType(type,ph){const chip=document.querySelector(`#ch${ph} .chip[data-cid="${type}"]`);if(!chip)return;S.placed[type]=type;document.querySelectorAll(`#fb${ph} .fslot[data-type="${type}"]`).forEach(el=>{el.textContent=chip.textContent;el.classList.add('filled')});chip.classList.remove('sel');chip.classList.add('used');S.sel=null;burst(chip);chkFilled(ph)}
+function rmType(type,ph){delete S.placed[type];document.querySelectorAll(`#fb${ph} .fslot[data-type="${type}"]`).forEach(el=>{el.textContent='?';el.classList.remove('filled')});const chip=document.querySelector(`#ch${ph} .chip[data-cid="${type}"]`);if(chip)chip.classList.remove('used');chkFilled(ph)}
+
+function chkFilled(ph){
+    let req=[];
+    if(ph===1)req=['v_n1','v_x1','v_nmx1'];else if(ph===2)req=['v_p2','v_q2'];else if(ph===3)req=['v_l3'];else if(ph===4)req=['v_l4','v_x4'];else if(ph===5)req=['v_m5','v_s5'];else if(ph===6)req=['v_X6','v_056','v_m6','v_s6'];else if(ph===7)req=['v_p7'];
+    document.getElementById(`ca${ph}`).classList.toggle('hidden',!req.every(t=>S.placed[t]));
+}
+
+function useHint(){
+    let ph=S.phase, types=[], labels={v_n1:'n',v_x1:'x',v_nmx1:'(n-x)',v_p2:'p',v_q2:'(1-p)',v_l3:'&lambda;',v_l4:'&lambda;',v_x4:'x',v_m5:'&mu;',v_s5:'&sigma;',v_X6:'X',v_056:'0.5 (Ajuste)',v_m6:'&mu;',v_s6:'&sigma;',v_p7:'Probabilidad'};
+    if(ph===1)types=['v_n1','v_x1','v_nmx1'];else if(ph===2)types=['v_p2','v_q2'];else if(ph===3)types=['v_l3'];else if(ph===4)types=['v_l4','v_x4'];else if(ph===5)types=['v_m5','v_s5'];else if(ph===6)types=['v_X6','v_056','v_m6','v_s6'];else if(ph===7)types=['v_p7'];
+    const empty=types.filter(t=>!S.placed[t]);if(!empty.length||S.hintCt>=3)return;
+    const pick=empty[Math.floor(Math.random()*empty.length)];S.hints[pick]=true;S.hintCt++;S.perfect=false;
+    document.querySelectorAll(`#fb${ph} .fslot[data-type="${pick}"]`).forEach(el=>el.classList.add('hg'));
+    if(S.hintCt>=3)document.getElementById(`hBtn_ph${ph}`).classList.add('used');
+    toast(`<i class="fas fa-lightbulb mr-1"></i>Busca: <strong>${labels[pick]}</strong> (${S.hintCt}/3)`,'i');
+}
+
+function calcP1(){
+    const ex=EX[S.idx], v=S.v;lockPhase(1);
+    const bridge=document.getElementById('br1');bridge.classList.remove('hidden');
+    bridge.innerHTML=`<div class="bridge-div"></div><div class="bridge-res br-pur">Coeficiente: ${ex.n}! / (${ex.x}! * ${ex.n-ex.x}!) = ${fmtN(fact(ex.n)/(fact(ex.x)*fact(ex.n-ex.x)))}</div><div class="bridge-div"></div>`;burst(bridge.querySelector('.bridge-res'));
+    setTimeout(()=>{S.phase=2;document.getElementById('ph2').classList.remove('hidden');loadChipsForPhase(2,ex);document.getElementById('ph2').scrollIntoView({behavior:'smooth',block:'center'})},600);
+}
+
+function calcP2(){
+    const ex=EX[S.idx], v=S.v;lockPhase(2);
+    const bridge=document.getElementById('br2');bridge.classList.remove('hidden');
+    const pB=(fact(ex.n)/(fact(ex.x)*fact(ex.n-ex.x)))*Math.pow(ex.p,ex.x)*Math.pow(1-ex.p,ex.n-ex.x);
+    bridge.innerHTML=`<div class="bridge-div"></div><div class="bridge-res br-pur">Prob. Puntual Binomial P(X=${ex.x}) = ${fmtN(pB)}</div><div class="bridge-div"></div>`;burst(bridge.querySelector('.bridge-res'));
+    setTimeout(()=>{S.phase=3;document.getElementById('ph3').classList.remove('hidden');loadChipsForPhase(3,ex);document.getElementById('ph3').scrollIntoView({behavior:'smooth',block:'center'})},600);
+}
+
+function calcP3(){
+    const ex=EX[S.idx], v=S.v;lockPhase(3);
+    const bridge=document.getElementById('br3');bridge.classList.remove('hidden');
+    bridge.innerHTML=`<div class="bridge-div"></div><div class="bridge-res br-pink">Datos Poisson: &lambda; = n * p = ${fmtN(v.lambda)}</div><div class="bridge-div"></div>`;burst(bridge.querySelector('.bridge-res'));
+    setTimeout(()=>{S.phase=4;document.getElementById('ph4').classList.remove('hidden');loadChipsForPhase(4,ex);document.getElementById('ph4').scrollIntoView({behavior:'smooth',block:'center'})},600);
+}
+
+function calcP4(){
+    const ex=EX[S.idx], v=S.v;lockPhase(4);
+    const bridge=document.getElementById('br4');bridge.classList.remove('hidden');
+    const pP=(Math.exp(-v.lambda)*Math.pow(v.lambda,ex.x))/fact(ex.x);
+    bridge.innerHTML=`<div class="bridge-div"></div><div class="bridge-res br-pink">Prob. Puntual Poisson P(X=${ex.x}) = ${fmtN(pP)}</div><div class="bridge-div"></div>`;burst(bridge.querySelector('.bridge-res'));
+    setTimeout(()=>{S.phase=5;document.getElementById('ph5').classList.remove('hidden');loadChipsForPhase(5,ex);document.getElementById('ph5').scrollIntoView({behavior:'smooth',block:'center'})},600);
+}
+
+function calcP5(){
+    const ex=EX[S.idx], v=S.v;lockPhase(5);
+    const bridge=document.getElementById('br5');bridge.classList.remove('hidden');
+    bridge.innerHTML=`<div class="bridge-div"></div><div class="bridge-res br-warn">Datos Normal: &mu; = ${fmtN(v.mu)}, &sigma; = ${fmtN(v.sigma)}. Para P(X&le;${ex.x}) aplicamos ajuste +0.5.</div><div class="bridge-div"></div>`;burst(bridge.querySelector('.bridge-res'));
+    setTimeout(()=>{S.phase=6;document.getElementById('ph6').classList.remove('hidden');loadChipsForPhase(6,ex);document.getElementById('ph6').scrollIntoView({behavior:'smooth',block:'center'})},600);
+}
+
+function calcP6(){
+    const ex=EX[S.idx], v=S.v;lockPhase(6);
+    const bridge=document.getElementById('br6');bridge.classList.remove('hidden');
+    bridge.innerHTML=`<div class="bridge-div"></div><div class="bridge-res br-warn">Z = (${ex.x} + 0.5 - ${fmtN(v.mu)}) / ${fmtN(v.sigma)} = <strong>${fmtN(v.Z)}</strong></div><div class="bridge-div"></div>`;burst(bridge.querySelector('.bridge-res'));
+    setTimeout(()=>{
+        S.phase=7;document.getElementById('ph7').classList.remove('hidden');loadChipsForPhase(7,ex);
+        document.getElementById('zTableCont').innerHTML=generateMiniZTable(v.Z);
+        document.getElementById('ph7').scrollIntoView({behavior:'smooth',block:'center'});
+    },600);
+}
+
+function calcP7(){
+    const ex=EX[S.idx], v=S.v;lockPhase(7);
+    
+    const steps=[
+        {l:`1. Prob. PUNTUAL Binomial/Poisson P(X=${ex.x}): Calculada en fases previas`,v:''},
+        {l:`2. Prob. ACUMULADA Normal P(X&le;${ex.x}) con ajuste +0.5:`,v:''},
+        {l:`Z = ${fmtN(v.Z)} &rarr; P(Z &le; ${fmtN(v.Z)})`,v:v.probZ.toFixed(4), fin:true}
+    ];
+
+    const dev=document.getElementById('devA');dev.innerHTML=`<div class="text-xs font-mono mb-2 mt-4" style="color:var(--success)"><i class="fas fa-check-circle mr-1"></i>Resumen de Resultados</div>`;
+    steps.forEach((st,i)=>{const d=document.createElement('div');d.className='dev-step';d.innerHTML=st.fin?`<div class="dev-line dev-final">${st.l}<span class="dev-rnum">${st.v}</span></div>`:`<div class="dev-line" style="color:var(--fg)">${st.l}</div>`;dev.appendChild(d);setTimeout(()=>d.classList.add('show'),400*(i+1))});
+
+    setTimeout(()=>{
+        let pts=0;['v_n1','v_x1','v_nmx1','v_p2','v_q2','v_l3','v_l4','v_x4','v_m5','v_s5','v_X6','v_056','v_m6','v_s6','v_p7'].forEach(t=>{let b=100;if(S.hints[t])b=25;else if(S.errs[t]>0)b=50;pts+=b});
+        if(S.perfect)pts+=200;S.score+=pts;
+        if(S.perfect){S.streak++;if(S.streak>S.maxStreak)S.maxStreak=S.streak}else S.streak=0;
+        S.results.push({score:pts,max:1600,perfect:S.perfect,hints:S.hintCt});
+        document.getElementById('scN').textContent=S.score;document.getElementById('strN').textContent=S.streak;updProg();
+        if(S.perfect){bigBurst();toast(`Perfecto! +${pts} pts (+200 bonus)`,'s')}else toast(`+${pts} pts`,'s');
+        const last=S.idx>=EX.length-1;
+        document.getElementById('nxtA').innerHTML=`<div class="mt-5 flex justify-end"><button class="btn-p" onclick="${last?'showResults()':'nextEx()'}">${last?'<i class="fas fa-trophy mr-2"></i>Ver resultados':'Siguiente<i class="fas fa-arrow-right ml-2"></i>'}</button></div>`;
+    },400*(steps.length+1));
+}
+
+function nextEx(){const c=document.getElementById('gCont');c.style.opacity='0';c.style.transform='translateY(-15px)';c.style.transition='opacity .25s,transform .25s';setTimeout(()=>{loadEx(S.idx+1);c.style.opacity='1';c.style.transform='translateY(0)'},260)}
+
+function showResults(){
+    showScr('scrR');const mx=EX.length*1600,te=S.results.reduce((s,r)=>s+r.score,0),pct=mx>0?(te/mx*100):0;const pf=S.results.filter(r=>r.perfect).length;
+    let rank,rc;if(pct>=90){rank='Maestro de la Aproximaci&oacute;n';rc='rg'}else if(pct>=70){rank='Estad&iacute;stico Experto';rc='rs'}else if(pct>=50){rank='Matem&aacute;tico Iniciado';rc='rb'}else{rank='Novato';rc='rk'}
+    document.getElementById('rCont').innerHTML=`
+    <div class="mb-1 text-xs font-mono tracking-widest uppercase" style="color:var(--muted)">RESULTADOS FINALES</div>
+    <div class="score-big mb-1">${te}</div><div class="text-sm mb-3" style="color:var(--muted)">de ${mx} puntos posibles</div>
+    <div class="mb-6"><span class="rank-badge ${rc}">${rank}</span></div>
+    <div class="grid grid-cols-3 gap-3 mb-8">
+        <div class="text-center p-3 rounded-xl" style="background:var(--card);border:1px solid var(--border)"><div class="text-2xl font-bold font-mono" style="color:var(--success)">${pf}/${EX.length}</div><div class="text-xs mt-1" style="color:var(--muted)">Perfectos</div></div>
+        <div class="text-center p-3 rounded-xl" style="background:var(--card);border:1px solid var(--border)"><div class="text-2xl font-bold font-mono" style="color:var(--accent)">${Math.round(pct)}%</div><div class="text-xs mt-1" style="color:var(--muted)">Precisi&oacute;n</div></div>
+        <div class="text-center p-3 rounded-xl" style="background:var(--card);border:1px solid var(--border)"><div class="text-2xl font-bold font-mono" style="color:var(--fg)">${S.maxStreak}</div><div class="text-xs mt-1" style="color:var(--muted)">Mejor racha</div></div>
+    </div>
+    <div class="text-left mb-8"><div class="text-sm font-semibold mb-3" style="color:var(--muted)">Detalle por ejercicio</div><div class="flex flex-col gap-2">${S.results.map((r,i)=>{const ratio=r.score/r.max,bc=ratio>=.8?'var(--success)':ratio>=.5?'var(--accent)':'var(--error)';const short=EX[i].stmt.replace(/<[^>]*>/g,'').substring(0,50)+'...';return`<div class="rcard"><div class="flex items-center justify-between mb-1.5"><div class="flex items-center gap-2"><span class="text-xs font-mono" style="color:var(--muted)">${i+1}.</span><span class="text-xs" style="color:var(--fg)">${short}</span>${r.perfect?'<i class="fas fa-crown" style="color:var(--accent2);font-size:.7rem"></i>':''}</div><span class="text-sm font-mono font-bold" style="color:${bc}">${r.score}/${r.max}</span></div><div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div class="bar-f" style="width:${ratio*100}%;background:${bc}"></div></div></div>`}).join('')}</div></div>
+    <div class="flex gap-3 justify-center flex-wrap"><button class="btn-p" onclick="startGame()"><i class="fas fa-redo mr-2"></i>Jugar de nuevo</button><button class="btn-s" onclick="showScr('scrW')"><i class="fas fa-home mr-2"></i>Inicio</button></div>`;
+    setTimeout(()=>{document.querySelectorAll('.bar-f').forEach(b=>{const w=b.style.width;b.style.width='0%';setTimeout(()=>b.style.width=w,100)})},50);if(pct>=70)bigBurst();
+}
+
+function startGame(){S={idx:0,phase:1,score:0,streak:0,maxStreak:0,results:[],sel:null,placed:{},errs:{},hints:{},hintCt:0,perfect:true,v:{}};showScr('scrG');buildProg();loadEx(0)}
+document.addEventListener('click',e=>{if(!e.target.closest('.chip')&&!e.target.closest('.fslot')&&S.sel){document.querySelectorAll(`#ch${S.phase} .chip.sel`).forEach(c=>c.classList.remove('sel'));S.sel=null}});
+</script>
+</body>
+</html>
