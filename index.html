@@ -68,6 +68,66 @@
         .btn-sm{padding:.5rem 1.2rem;font-size:.85rem;border-radius:8px}
         .btn-icon{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:.4rem .65rem;cursor:pointer;font-size:.82rem;transition:all .2s}
         .btn-icon:hover:not(.used){border-color:var(--accent);color:var(--accent)}.btn-icon.used{opacity:.3;cursor:default}
+
+        /* === Botón flotante Siguiente Ejercicio === */
+        .skip-fab{
+            position:fixed;
+            top:12px;
+            left:12px;
+            z-index:999;
+            display:flex;
+            align-items:center;
+            gap:7px;
+            padding:10px 18px;
+            background:linear-gradient(135deg,rgba(139,92,246,.18),rgba(139,92,246,.08));
+            border:1.5px solid rgba(139,92,246,.4);
+            border-radius:12px;
+            color:var(--accent2);
+            font-family:'Space Grotesk',sans-serif;
+            font-weight:700;
+            font-size:.88rem;
+            cursor:pointer;
+            backdrop-filter:blur(14px);
+            -webkit-backdrop-filter:blur(14px);
+            box-shadow:0 4px 24px rgba(139,92,246,.15),0 0 0 1px rgba(139,92,246,.08) inset;
+            transition:all .2s;
+            user-select:none;
+        }
+        .skip-fab:hover{
+            background:linear-gradient(135deg,rgba(139,92,246,.32),rgba(139,92,246,.14));
+            border-color:var(--accent);
+            transform:translateY(-2px) scale(1.03);
+            box-shadow:0 6px 28px rgba(139,92,246,.28),0 0 0 1px rgba(139,92,246,.15) inset;
+        }
+        .skip-fab:active{
+            transform:translateY(0) scale(.97);
+            box-shadow:0 2px 12px rgba(139,92,246,.15);
+        }
+        .skip-fab i{
+            font-size:1rem;
+            transition:transform .25s;
+        }
+        .skip-fab:hover i{
+            transform:translateX(3px);
+        }
+        .skip-fab::after{
+            content:'';
+            position:absolute;
+            inset:-3px;
+            border-radius:14px;
+            border:1.5px solid rgba(139,92,246,.3);
+            animation:fab-pulse 2.5s ease-in-out infinite;
+            pointer-events:none;
+        }
+        @keyframes fab-pulse{
+            0%,100%{opacity:0;transform:scale(1)}
+            50%{opacity:1;transform:scale(1.04)}
+        }
+        @media(max-width:480px){
+            .skip-fab{padding:8px 12px;font-size:.78rem;gap:5px;top:8px;left:8px;border-radius:10px}
+            .skip-fab i{font-size:.88rem}
+        }
+
         .particle{position:fixed;width:7px;height:7px;border-radius:50%;pointer-events:none;z-index:100;animation:pb .65s ease-out forwards}
         @keyframes pb{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
         .toast-c{position:fixed;top:72px;right:14px;z-index:200;display:flex;flex-direction:column;gap:6px}
@@ -85,6 +145,12 @@
 </head>
 <body>
 <div class="bg-blob b1"></div><div class="bg-blob b2"></div><div class="toast-c" id="toastC"></div><div id="partC"></div>
+
+<!-- Botón flotante: Siguiente Ejercicio -->
+<button class="skip-fab hidden" id="skipFab" onclick="skipEx()">
+    <i class="fas fa-forward-step"></i>
+    <span id="skipFabLabel">Siguiente</span>
+</button>
 
 <div class="screen" id="scrW">
     <div class="text-center px-4 max-w-2xl">
@@ -142,9 +208,27 @@ function toast(m,t='i'){const c=document.getElementById('toastC'),e=document.cre
 function burst(el){if(!el)return;const r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,c=document.getElementById('partC'),cols=['#8b5cf6','#34d399','#a78bfa','#f59e0b','#c4b5fd'];for(let i=0;i<14;i++){const p=document.createElement('div');p.className='particle';const a=(Math.PI*2*i)/14+(Math.random()-.5)*.5,d=35+Math.random()*55;p.style.left=cx+'px';p.style.top=cy+'px';p.style.setProperty('--dx',Math.cos(a)*d+'px');p.style.setProperty('--dy',Math.sin(a)*d+'px');p.style.backgroundColor=cols[i%cols.length];const sz=5+Math.random()*4;p.style.width=sz+'px';p.style.height=sz+'px';c.appendChild(p);setTimeout(()=>p.remove(),700)}}
 function bigBurst(){const c=document.getElementById('partC'),cols=['#8b5cf6','#34d399','#a78bfa','#f59e0b','#fff'];for(let i=0;i<35;i++){const p=document.createElement('div');p.className='particle';const a=Math.random()*Math.PI*2,d=80+Math.random()*120;p.style.left=innerWidth/2+'px';p.style.top=innerHeight/2+'px';p.style.setProperty('--dx',Math.cos(a)*d+'px');p.style.setProperty('--dy',Math.sin(a)*d+'px');p.style.backgroundColor=cols[i%cols.length];const sz=4+Math.random()*6;p.style.width=sz+'px';p.style.height=sz+'px';c.appendChild(p);setTimeout(()=>p.remove(),800)}}
 
-function showScr(id){['scrW','scrG','scrR'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id))}
+function showScr(id){
+    ['scrW','scrG','scrR'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));
+    /* Mostrar/ocultar el botón flotante según la pantalla */
+    const fab=document.getElementById('skipFab');
+    if(id==='scrG') fab.classList.remove('hidden');
+    else fab.classList.add('hidden');
+}
 function buildProg(){const b=document.getElementById('progBar');b.innerHTML='';EX.forEach((_,i)=>{const d=document.createElement('div');d.className='pseg';d.id=`sg${i}`;b.appendChild(d)})}
 function updProg(){EX.forEach((_,i)=>{const s=document.getElementById(`sg${i}`);s.className='pseg';if(i<S.idx){const r=S.results[i],ratio=r.score/r.max;s.classList.add(ratio>=.8?'sg':ratio>=.5?'sa':'se')}else if(i===S.idx)s.classList.add('sc')})}
+function updSkipFab(){
+    const fab=document.getElementById('skipFab');
+    const label=document.getElementById('skipFabLabel');
+    const icon=fab.querySelector('i');
+    if(S.idx>=EX.length-1){
+        label.textContent='Resultados';
+        icon.className='fas fa-trophy';
+    } else {
+        label.textContent='Siguiente';
+        icon.className='fas fa-forward-step';
+    }
+}
 function lockPhase(ph){document.querySelectorAll(`#fb${ph} .fslot`).forEach(s=>{s.classList.remove('filled');s.classList.add('done');s.style.cursor='default'});document.querySelectorAll(`#ch${ph} .chip`).forEach(c=>c.classList.add('used'));document.getElementById(`ca${ph}`).classList.add('hidden');const b=document.getElementById(`hBtn_ph${ph}`);if(b)b.classList.add('used')}
 
 function mkChips(phase, ex, v){
@@ -173,7 +257,7 @@ function loadEx(idx){
     document.getElementById('pCtr').textContent=`${idx+1} / ${EX.length}`;
     document.getElementById('scN').textContent=S.score;
     document.getElementById('strN').textContent=S.streak;
-    updProg();
+    updProg();updSkipFab();
 
     const phHTML=(id, badge, badgeClass, formulaId, chipsId, btnTxt, btnAction)=>`
         <div id="${id}" class="hidden">
@@ -271,6 +355,60 @@ function useHint(){
     toast(`<i class="fas fa-lightbulb mr-1"></i>Busca: <strong>${labels[pick]}</strong> (${S.hintCt}/3)`,'i');
 }
 
+/* ═══════════════════════════════════════════
+   SALTAR AL SIGUIENTE EJERCICIO
+   ═══════════════════════════════════════════ */
+function skipEx(){
+    /* Evitar doble skip */
+    if(S.results.length > S.idx) return;
+
+    /* Calcular puntuación parcial */
+    let pts = 0;
+    const allTypes = ['v_n1','v_x1','v_nmx1','v_p2','v_q2','v_l3','v_l4','v_x4','v_m5','v_s5','v_X6','v_056','v_m6','v_s6','v_p7'];
+    allTypes.forEach(t => {
+        if(S.placed[t]){
+            let b = 100;
+            if(S.hints[t]) b = 25;
+            else if(S.errs[t] > 0) b = 50;
+            pts += b;
+        }
+    });
+
+    /* Bonus por fases completadas */
+    const completedPhases = S.phase - 1;
+    pts += completedPhases * 50;
+
+    const wasPartial = completedPhases < 7;
+
+    if(wasPartial){
+        S.perfect = false;
+        S.streak = 0;
+    } else {
+        if(S.perfect){S.streak++;if(S.streak>S.maxStreak)S.maxStreak=S.streak}
+    }
+
+    S.score += pts;
+    S.results.push({score:pts, max:1600, perfect:S.perfect && !wasPartial, hints:S.hintCt, skipped:wasPartial});
+    document.getElementById('scN').textContent = S.score;
+    document.getElementById('strN').textContent = S.streak;
+    updProg();updSkipFab();
+
+    if(wasPartial){
+        toast(`<i class="fas fa-forward-step mr-1"></i>Ejercicio saltado — +${pts} pts parciales`,'i');
+    } else {
+        toast(`+${pts} pts`,'s');
+    }
+
+    /* Avanzar al siguiente o mostrar resultados */
+    if(S.idx >= EX.length - 1){
+        setTimeout(() => showResults(), 500);
+    } else {
+        const c = document.getElementById('gCont');
+        c.style.opacity='0';c.style.transform='translateY(-15px)';c.style.transition='opacity .25s,transform .25s';
+        setTimeout(()=>{loadEx(S.idx+1);c.style.opacity='1';c.style.transform='translateY(0)'},260);
+    }
+}
+
 function calcP1(){
     const ex=EX[S.idx], v=S.v;lockPhase(1);
     const bridge=document.getElementById('br1');bridge.classList.remove('hidden');
@@ -335,8 +473,8 @@ function calcP7(){
         let pts=0;['v_n1','v_x1','v_nmx1','v_p2','v_q2','v_l3','v_l4','v_x4','v_m5','v_s5','v_X6','v_056','v_m6','v_s6','v_p7'].forEach(t=>{let b=100;if(S.hints[t])b=25;else if(S.errs[t]>0)b=50;pts+=b});
         if(S.perfect)pts+=200;S.score+=pts;
         if(S.perfect){S.streak++;if(S.streak>S.maxStreak)S.maxStreak=S.streak}else S.streak=0;
-        S.results.push({score:pts,max:1600,perfect:S.perfect,hints:S.hintCt});
-        document.getElementById('scN').textContent=S.score;document.getElementById('strN').textContent=S.streak;updProg();
+        S.results.push({score:pts,max:1600,perfect:S.perfect,hints:S.hintCt,skipped:false});
+        document.getElementById('scN').textContent=S.score;document.getElementById('strN').textContent=S.streak;updProg();updSkipFab();
         if(S.perfect){bigBurst();toast(`Perfecto! +${pts} pts (+200 bonus)`,'s')}else toast(`+${pts} pts`,'s');
         const last=S.idx>=EX.length-1;
         document.getElementById('nxtA').innerHTML=`<div class="mt-5 flex justify-end"><button class="btn-p" onclick="${last?'showResults()':'nextEx()'}">${last?'<i class="fas fa-trophy mr-2"></i>Ver resultados':'Siguiente<i class="fas fa-arrow-right ml-2"></i>'}</button></div>`;
@@ -357,13 +495,13 @@ function showResults(){
         <div class="text-center p-3 rounded-xl" style="background:var(--card);border:1px solid var(--border)"><div class="text-2xl font-bold font-mono" style="color:var(--accent)">${Math.round(pct)}%</div><div class="text-xs mt-1" style="color:var(--muted)">Precisi&oacute;n</div></div>
         <div class="text-center p-3 rounded-xl" style="background:var(--card);border:1px solid var(--border)"><div class="text-2xl font-bold font-mono" style="color:var(--fg)">${S.maxStreak}</div><div class="text-xs mt-1" style="color:var(--muted)">Mejor racha</div></div>
     </div>
-    <div class="text-left mb-8"><div class="text-sm font-semibold mb-3" style="color:var(--muted)">Detalle por ejercicio</div><div class="flex flex-col gap-2">${S.results.map((r,i)=>{const ratio=r.score/r.max,bc=ratio>=.8?'var(--success)':ratio>=.5?'var(--accent)':'var(--error)';const short=EX[i].stmt.replace(/<[^>]*>/g,'').substring(0,50)+'...';return`<div class="rcard"><div class="flex items-center justify-between mb-1.5"><div class="flex items-center gap-2"><span class="text-xs font-mono" style="color:var(--muted)">${i+1}.</span><span class="text-xs" style="color:var(--fg)">${short}</span>${r.perfect?'<i class="fas fa-crown" style="color:var(--accent2);font-size:.7rem"></i>':''}</div><span class="text-sm font-mono font-bold" style="color:${bc}">${r.score}/${r.max}</span></div><div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div class="bar-f" style="width:${ratio*100}%;background:${bc}"></div></div></div>`}).join('')}</div></div>
+    <div class="text-left mb-8"><div class="text-sm font-semibold mb-3" style="color:var(--muted)">Detalle por ejercicio</div><div class="flex flex-col gap-2">${S.results.map((r,i)=>{const ratio=r.score/r.max,bc=ratio>=.8?'var(--success)':ratio>=.5?'var(--accent)':'var(--error)';const short=EX[i].stmt.replace(/<[^>]*>/g,'').substring(0,50)+'...';const skipTag=r.skipped?'<span style="color:var(--warn);font-size:.65rem;font-weight:600;margin-left:6px">SALTADO</span>':'';return`<div class="rcard"><div class="flex items-center justify-between mb-1.5"><div class="flex items-center gap-2"><span class="text-xs font-mono" style="color:var(--muted)">${i+1}.</span><span class="text-xs" style="color:var(--fg)">${short}</span>${r.perfect?'<i class="fas fa-crown" style="color:var(--accent2);font-size:.7rem"></i>':''}${skipTag}</div><span class="text-sm font-mono font-bold" style="color:${bc}">${r.score}/${r.max}</span></div><div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div class="bar-f" style="width:${ratio*100}%;background:${bc}"></div></div></div>`}).join('')}</div></div>
     <div class="flex gap-3 justify-center flex-wrap"><button class="btn-p" onclick="startGame()"><i class="fas fa-redo mr-2"></i>Jugar de nuevo</button><button class="btn-s" onclick="showScr('scrW')"><i class="fas fa-home mr-2"></i>Inicio</button></div>`;
     setTimeout(()=>{document.querySelectorAll('.bar-f').forEach(b=>{const w=b.style.width;b.style.width='0%';setTimeout(()=>b.style.width=w,100)})},50);if(pct>=70)bigBurst();
 }
 
 function startGame(){S={idx:0,phase:1,score:0,streak:0,maxStreak:0,results:[],sel:null,placed:{},errs:{},hints:{},hintCt:0,perfect:true,v:{}};showScr('scrG');buildProg();loadEx(0)}
-document.addEventListener('click',e=>{if(!e.target.closest('.chip')&&!e.target.closest('.fslot')&&S.sel){document.querySelectorAll(`#ch${S.phase} .chip.sel`).forEach(c=>c.classList.remove('sel'));S.sel=null}});
+document.addEventListener('click',e=>{if(!e.target.closest('.chip')&&!e.target.closest('.fslot')&&!e.target.closest('.skip-fab')&&S.sel){document.querySelectorAll(`#ch${S.phase} .chip.sel`).forEach(c=>c.classList.remove('sel'));S.sel=null}});
 </script>
 </body>
 </html>
